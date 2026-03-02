@@ -1,9 +1,9 @@
 diff --git a/src/libopensc/pkcs15-epass2003.c b/src/libopensc/pkcs15-epass2003.c
 new file mode 100644
-index 000000000..f45919989
+index 0000000..12f7f54
 --- /dev/null
 +++ b/src/libopensc/pkcs15-epass2003.c
-@@ -0,0 +1,261 @@
+@@ -0,0 +1,302 @@
 +/*
 + * pkcs15-epass2003.c: PKCS#15 emulation for ePass2003 cards with
 + * proprietary ENTERSAFE filesystem layout (no standard PKCS#15 structure).
@@ -221,6 +221,46 @@ index 000000000..f45919989
 +		}
 +	}
 +
++	/* Add RSA public key to avoid cert-derived pubkey alias collision */
++	{
++		struct sc_pkcs15_pubkey_info pubkey_info;
++		struct sc_pkcs15_object pubkey_obj;
++		struct sc_pkcs15_der cert_der;
++		struct sc_pkcs15_pubkey *pubkey = NULL;
++
++		memset(&pubkey_info, 0, sizeof(pubkey_info));
++		memset(&pubkey_obj, 0, sizeof(pubkey_obj));
++		memset(&cert_der, 0, sizeof(cert_der));
++
++		cert_der.value = buf + cert_offset;
++		cert_der.len = cert_len;
++		r = sc_pkcs15_pubkey_from_cert(ctx, &cert_der, &pubkey);
++		if (r < 0) {
++			sc_log(ctx, "Failed to derive public key from cert: %s",
++			       sc_strerror(r));
++			LOG_FUNC_RETURN(ctx, r);
++		}
++
++		pubkey_info.id.value[0] = 0x45;
++		pubkey_info.id.len = 1;
++		pubkey_info.usage = SC_PKCS15_PRKEY_USAGE_VERIFY |
++				    SC_PKCS15_PRKEY_USAGE_ENCRYPT;
++		pubkey_info.native = 1;
++		pubkey_info.key_reference = 0;
++		pubkey_info.modulus_length = 2048;
++		sc_format_path(EPASS2003_PUBK_FILE, &pubkey_info.path);
++
++		strlcpy(pubkey_obj.label, "Public Key", sizeof(pubkey_obj.label));
++		pubkey_obj.emulated = pubkey;
++
++		r = sc_pkcs15emu_add_rsa_pubkey(p15card, &pubkey_obj, &pubkey_info);
++		if (r < 0) {
++			sc_pkcs15_free_pubkey(pubkey);
++			sc_log(ctx, "Failed to add public key: %s", sc_strerror(r));
++			LOG_FUNC_RETURN(ctx, r);
++		}
++	}
++
 +	/* Add RSA private key */
 +	{
 +		struct sc_pkcs15_prkey_info prkey_info;
@@ -239,7 +279,8 @@ index 000000000..f45919989
 +		prkey_info.modulus_length = 2048;
 +		sc_format_path(EPASS2003_DF, &prkey_info.path);
 +
-+		strlcpy(prkey_obj.label, "Private Key", sizeof(prkey_obj.label));
++		/* MoldSign resolves signing key by cert label; keep labels aligned. */
++		strlcpy(prkey_obj.label, "Certificate", sizeof(prkey_obj.label));
 +		prkey_obj.auth_id.value[0] = 0x01;
 +		prkey_obj.auth_id.len = 1;
 +		prkey_obj.flags = SC_PKCS15_CO_FLAG_PRIVATE;
