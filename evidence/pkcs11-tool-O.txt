@@ -1,0 +1,14 @@
+Certificate Object; type = X.509 cert
+  label:      Certificate
+  subject:    DN: CN=Prodius Cristian/serialNumber=2003500082862, L=Chi\xC5\x9Fin\xC4\x83u, ST=Republica Moldova/telephoneNumber=\+37368200722, C=MD
+  serial:     400000039AFC01DC01535C334DCA
+  ID:         45
+  uri:        pkcs11:model=PKCS%2315%20emulated;manufacturer=EnterSafe;serial=30410c6a0064001d;token=ePass2003;id=%45;object=Certificate;type=cert
+Public Key Object; RSA 2048 bits
+  label:      Certificate
+  ID:         45
+  Usage:      encrypt, verify, verifyRecover
+  Access:     local
+  uri:        pkcs11:model=PKCS%2315%20emulated;manufacturer=EnterSafe;serial=30410c6a0064001d;token=ePass2003;id=%45;object=Certificate;type=public
+Profile object 50839712
+  profile_id:          CKP_PUBLIC_CERTIFICATES_TOKEN (4)

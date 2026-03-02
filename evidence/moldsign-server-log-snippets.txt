@@ -1,0 +1,81 @@
+# Key MoldSign Server log lines
+
+    16	[main] INFO md.cts.moldsign.clientcardmanager.start.ClientCardManager - IAIK.addAsProvider()
+    17	[main] INFO md.cts.cryptography.providers.GlobalCertificateProvider - registerProvider(providerId:JKS trusted trusted:true)
+    18	[Monitor] INFO md.cts.pkcs11.cards.CardReaderManager - thread started
+    19	[Monitor] INFO md.cts.pkcs11.cards.CardSelector - Loading driver: opensc-pkcs11.so
+    20	[main] INFO md.cts.moldsign.clientcardmanager.server.AllowedSites - initAllowedUrl
+    21	[main] INFO md.cts.cryptography.providers.GlobalCertificateProvider - registerProvider(providerId:JKS trusted trusted:true)
+    22	[main] INFO md.cts.pkcs11.global.JarChecker - Verifing entry: md/allowedURL.properties
+    23	[main] INFO md.cts.cryptography.providers.JKSTrustedCertificateProvider - providerId:JKS trusted certificates.size() = 19
+    24	[main] INFO md.cts.cryptography.providers.JKSTrustedCertificateProvider - providerId:JKS trusted certificates.size() = 19
+    25	[main] INFO md.cts.pkcs11.global.JarChecker - Verifing entry: META-INF/MANIFEST.MF
+    26	[main] INFO md.cts.cryptography.providers.JKSTrustedCertificateProvider - providerId:JKS trusted certificates.size() = 19
+    27	[main] INFO md.cts.cryptography.providers.JKSTrustedCertificateProvider - providerId:JKS trusted certificates.size() = 19
+    28	[main] INFO md.cts.pkcs11.global.JarChecker - Verifing entry: META-INF/CODE_SIGN_APP.SF
+    29	[main] INFO md.cts.pkcs11.global.JarChecker - Verifing entry: META-INF/CODE_SIGN_APP.RSA
+    30	[main] INFO md.cts.moldsign.clientcardmanager.server.ApiServer - init server
+    31	Mar 03, 2026 12:04:30 AM org.glassfish.jersey.server.wadl.WadlFeature configure
+    32	WARNING: JAXBContext implementation could not be found. WADL feature is disabled.
+    33	[main] INFO md.cts.moldsign.clientcardmanager.server.ApiServer - Starting API server
+    34	Mar 03, 2026 12:04:31 AM org.glassfish.grizzly.http.server.NetworkListener start
+    35	INFO: Started listener bound to [localhost.cts.md:18480]
+    36	Mar 03, 2026 12:04:31 AM org.glassfish.grizzly.http.server.NetworkListener start
+    37	INFO: Started listener bound to [localhost.cts.md:18443]
+    38	Mar 03, 2026 12:04:31 AM org.glassfish.grizzly.http.server.HttpServer start
+    39	INFO: [HttpServer] Started.
+    40	[Monitor] INFO md.cts.pkcs11.cards.CardSelector - init driver: opensc-pkcs11.so
+
+    74		at md.cts.pkcs11.cards.CardReaderManager.registerCards(CardReaderManager.java:135)
+    75		at md.cts.pkcs11.cards.CardReaderManager.refreshCardReaders(CardReaderManager.java:183)
+    76		at md.cts.pkcs11.cards.CardReaderManager$CardSelectorMonitor.run(CardReaderManager.java:383)
+    77	[Monitor] INFO md.cts.pkcs11.cards.CardReaderManager - Card inserted into reader opensc-pkcs11.so-0
+    78	[Monitor] INFO md.cts.cryptography.providers.GlobalCertificateProvider - registerProvider(providerId:opensc-pkcs11.so-0 trusted:false)
+    79	[Monitor] INFO md.cts.pkcs11.cards.certificates.CardObjectManipulation - Refreshing list of certificates
+    80	[Monitor] INFO md.cts.pkcs11.cards.CardReader - new IAIKPkcs11 provider added for opensc-pkcs11.so slot:0
+    81	[Monitor] INFO md.cts.pkcs11.TokenSes - Session initialized
+    82	[Monitor] INFO md.cts.pkcs11.cards.certificates.CardObjectManipulation - found:1
+    83	[Monitor] INFO md.cts.cryptography.providers.PKCS11SecurityProvider - new PKCS11SecurityProvider
+    84	[Monitor] INFO md.cts.cryptography.providers.SecurityOperationsProviderManager - registerProvider name=opensc-pkcs11.so-0 provider=md.cts.cryptography.providers.PKCS11SecurityProvider@37af0ce8
+    85	[Monitor] INFO md.cts.cryptography.providers.DefaultSecurityOperationsProvider - new DefaultSecurityOperationsProvider
+    86	[AWT-EventQueue-0] INFO dorkbox.systemTray.SystemTray - Successfully loaded type: _SwingTray
+    87	[Thread-5] INFO cargo.DartBoss - load the list of Certificates for renewal checking
+    88	[Thread-5] INFO cargo.DartBoss - getDriver() 4
+    89	[Thread-5] ERROR cargo.DartBoss - 
+    90	iaik.pkcs.pkcs11.wrapper.PKCS11Exception: CKR_GENERAL_ERROR
+    91		at iaik.pkcs.pkcs11.wrapper.PKCS11Implementation.C_OpenSession(Native Method)
+    92		at iaik.pkcs.pkcs11.Token.openSession(Token.java:346)
+    93		at cargo.DartModule.searchCertificates(DartModule.java:123)
+    94		at cargo.DartModule.scanCertificates(DartModule.java:115)
+    95		at cargo.DartBoss.loadListOfCertificate(DartBoss.java:128)
+    96		at cargo.DartBoss.loadListOfCertificateForAllModule(DartBoss.java:67)
+    97		at cargo.DartBoss.lambda$startCheckCertificate$0(DartBoss.java:54)
+    98		at java.base/java.lang.Thread.run(Unknown Source)
+    99	[Thread-5] ERROR cargo.DartBoss - 
+   100	iaik.pkcs.pkcs11.wrapper.PKCS11Exception: CKR_TOKEN_NOT_RECOGNIZED
+   101		at iaik.pkcs.pkcs11.wrapper.PKCS11Implementation.C_OpenSession(Native Method)
+   102		at iaik.pkcs.pkcs11.Token.openSession(Token.java:346)
+   103		at cargo.DartModule.searchCertificates(DartModule.java:123)
+   104		at cargo.DartModule.scanCertificates(DartModule.java:115)
+   105		at cargo.DartBoss.loadListOfCertificate(DartBoss.java:128)
+   106		at cargo.DartBoss.loadListOfCertificateForAllModule(DartBoss.java:67)
+   107		at cargo.DartBoss.lambda$startCheckCertificate$0(DartBoss.java:54)
+   108		at java.base/java.lang.Thread.run(Unknown Source)
+   109	[Thread-5] INFO cargo.DartBoss - renewal all=1
+   110	[Thread-5] INFO cargo.DartBoss - renewal expiring=0
+   111	[Grizzly-worker(2)] INFO md.cts.moldsign.clientcardmanager.server.services.Certificates - getCertificates()
+   112	[Grizzly-worker(2)] INFO md.cts.moldsign.clientcardmanager.server.services.Certificates - GET Certificates: validOnly: true privateOnly true
+   113	[Grizzly-worker(2)] INFO md.cts.cryptography.providers.GlobalCertificateProvider - providers.size() = 1
+   114	[Grizzly-worker(2)] INFO md.cts.cryptography.providers.GlobalCertificateProvider - providerId = opensc-pkcs11.so-0
+   115	[Grizzly-worker(2)] INFO md.cts.cryptography.providers.GlobalCertificateProvider - getCertificateModels(providerId:opensc-pkcs11.so-0)
+   116	[Grizzly-worker(2)] INFO md.cts.cryptography.providers.GlobalCertificateProvider - CertificateModel.size=1
+   117	[Grizzly-worker(2)] INFO md.cts.cryptography.providers.GlobalCertificateProvider - cm opensc-pkcs11.so-0 45
+   118	[Grizzly-worker(2)] INFO md.cts.cryptography.providers.GlobalCertificateProvider - cm subject= C=MD,telephoneNumber=\+37368200722,ST=Republica Moldova,L=Chişinău,serialNumber=2003500082862,CN=Prodius Cristian
+   119	[Grizzly-worker(2)] INFO md.cts.cryptography.providers.GlobalCertificateProvider - check for valid policyId=1.2.498.3.32.1.1
+   120	[Grizzly-worker(2)] INFO md.cts.cryptography.providers.GlobalCertificateProvider - isCertificateValidForOID=true
+   121	[Grizzly-worker(2)] INFO md.cts.cryptography.providers.GlobalCertificateProvider - cm.isTrusted()=false
+   122	[Grizzly-worker(2)] INFO md.cts.cryptography.providers.JKSTrustedCertificateProvider - providerId:JKS trusted certificates.size() = 19
+   123	[Grizzly-worker(2)] INFO md.cts.cryptography.providers.JKSTrustedCertificateProvider - providerId:JKS trusted certificates.size() = 19
+   124	[Grizzly-worker(2)] INFO md.cts.cryptography.providers.GlobalCertificateProvider - getCertificateChain.size=3
+   125	[Grizzly-worker(2)] INFO md.cts.cryptography.providers.GlobalCertificateProvider - model.isTrusted()=false C=MD,telephoneNumber=\+37368200722,ST=Republica Moldova,L=Chişinău,serialNumber=2003500082862,CN=Prodius Cristian
+   126	[Grizzly-worker(2)] INFO md.cts.cryptography.providers.GlobalCertificateProvider - model.isTrusted()=true organizationIdentifier=NTRMD-1003600096694,CN=MDQSign,O=IP Serviciul Tehnologia Informației şi Securitate Cibernetică,L=Chișinău,C=MD

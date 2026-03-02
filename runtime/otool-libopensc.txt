@@ -1,0 +1,5 @@
+/Applications/STISC/MoldSign/native_lib/libopensc.12.dylib:
+	@rpath/libopensc.12.dylib (compatibility version 13.0.0, current version 13.2.0)
+	/usr/lib/libz.1.dylib (compatibility version 1.0.0, current version 1.2.12)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)
+	@rpath/libcrypto.3.dylib (compatibility version 3.0.0, current version 3.0.0)

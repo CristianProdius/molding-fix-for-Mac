@@ -1,0 +1,11 @@
+Available slots:
+Slot 0 (0x0): FS USB Token
+  token label        : ePass2003
+  token manufacturer : EnterSafe
+  token model        : PKCS#15 emulated
+  token flags        : login required, rng, token initialized, PIN initialized
+  hardware version   : 0.0
+  firmware version   : 0.0
+  serial num         : 30410c6a0064001d
+  pin min/max        : 4/16
+  uri                : pkcs11:model=PKCS%2315%20emulated;manufacturer=EnterSafe;serial=30410c6a0064001d;token=ePass2003
