@@ -1,0 +1,267 @@
+diff --git a/src/libopensc/pkcs15-epass2003.c b/src/libopensc/pkcs15-epass2003.c
+new file mode 100644
+index 000000000..f45919989
+--- /dev/null
++++ b/src/libopensc/pkcs15-epass2003.c
+@@ -0,0 +1,261 @@
++/*
++ * pkcs15-epass2003.c: PKCS#15 emulation for ePass2003 cards with
++ * proprietary ENTERSAFE filesystem layout (no standard PKCS#15 structure).
++ *
++ * These cards are provisioned by the Castle/ENTERSAFE tool and store
++ * certificates and keys under DF 2003 in a proprietary format.
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) any later version.
++ */
++
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#include <stdlib.h>
++#include <string.h>
++
++#include "internal.h"
++#include "pkcs15.h"
++#include "cardctl.h"
++
++/* DF containing ENTERSAFE objects */
++#define EPASS2003_DF		"3F002003"
++
++/* File IDs within DF 2003 */
++#define EPASS2003_INDEX_FILE	"3F0020036F01"
++#define EPASS2003_CERT_FILE	"3F00200324C0"
++#define EPASS2003_PUBK_FILE	"3F00200324A0"
++
++/* Max certificate size we'll handle */
++#define MAX_CERT_SIZE		8192
++
++/* Find a DER-encoded certificate (SEQUENCE tag 30 82 xx xx) in buffer.
++ * Returns offset to cert start, or -1 if not found. */
++static int
++find_cert_in_buffer(const unsigned char *buf, size_t buflen,
++		    size_t *cert_offset, size_t *cert_len)
++{
++	size_t i;
++
++	for (i = 0; i + 4 <= buflen; i++) {
++		if (buf[i] == 0x30 && buf[i + 1] == 0x82) {
++			size_t len = ((size_t)buf[i + 2] << 8) | buf[i + 3];
++			size_t total = len + 4;
++
++			/* Sanity check: cert should be at least 256 bytes
++			 * and fit within the buffer */
++			if (total >= 256 && total <= buflen - i) {
++				/* Inner should also start with SEQUENCE */
++				if (buf[i + 4] == 0x30) {
++					*cert_offset = i;
++					*cert_len = total;
++					return 0;
++				}
++			}
++		}
++	}
++	return -1;
++}
++
++static int
++epass2003_read_file(sc_card_t *card, const char *path_str,
++		    unsigned char *buf, size_t bufsize, size_t *outlen)
++{
++	sc_path_t path;
++	sc_file_t *file = NULL;
++	size_t size;
++	int r;
++
++	sc_format_path(path_str, &path);
++	r = sc_select_file(card, &path, &file);
++	if (r < 0)
++		return r;
++
++	size = file->size;
++	sc_file_free(file);
++
++	if (size == 0 || size > bufsize)
++		return SC_ERROR_INVALID_DATA;
++
++	r = sc_read_binary(card, 0, buf, size, 0);
++	if (r < 0)
++		return r;
++
++	*outlen = (size_t)r;
++	return SC_SUCCESS;
++}
++
++static int
++sc_pkcs15emu_epass2003_init(sc_pkcs15_card_t *p15card)
++{
++	sc_card_t *card = p15card->card;
++	sc_context_t *ctx = card->ctx;
++	unsigned char buf[MAX_CERT_SIZE];
++	size_t buflen = 0;
++	size_t cert_offset, cert_len;
++	int r;
++
++	SC_FUNC_CALLED(ctx, SC_LOG_DEBUG_VERBOSE);
++
++	/* Verify the ENTERSAFE DF exists by reading the index file */
++	r = epass2003_read_file(card, EPASS2003_INDEX_FILE, buf, sizeof(buf), &buflen);
++	if (r < 0) {
++		sc_log(ctx, "Cannot read ENTERSAFE index file, not our card layout");
++		return SC_ERROR_WRONG_CARD;
++	}
++
++	/* Check for ENTERSAFE signature in index: "mscp" or "pkcs11" */
++	if (buflen < 64 || (memcmp(buf + 2, "mscp", 4) != 0 &&
++			    memcmp(buf + 0x22, "pkcs11", 6) != 0)) {
++		sc_log(ctx, "Index file does not contain expected ENTERSAFE markers");
++		return SC_ERROR_WRONG_CARD;
++	}
++
++	/* Set token info */
++	set_string(&p15card->tokeninfo->manufacturer_id, "EnterSafe");
++	set_string(&p15card->tokeninfo->label, "ePass2003");
++	p15card->tokeninfo->flags = SC_PKCS15_TOKEN_PRN_GENERATION;
++
++	/* Get and set serial number */
++	{
++		sc_serial_number_t serial;
++		char hex_serial[64];
++
++		r = sc_card_ctl(card, SC_CARDCTL_GET_SERIALNR, &serial);
++		if (r == SC_SUCCESS) {
++			sc_bin_to_hex(serial.value, serial.len,
++				      hex_serial, sizeof(hex_serial), 0);
++			set_string(&p15card->tokeninfo->serial_number, hex_serial);
++		}
++	}
++
++	/* Add user PIN (reference 2, from epass2003 profile) */
++	{
++		struct sc_pkcs15_auth_info pin_info;
++		struct sc_pkcs15_object pin_obj;
++
++		memset(&pin_info, 0, sizeof(pin_info));
++		memset(&pin_obj, 0, sizeof(pin_obj));
++
++		pin_info.auth_type = SC_PKCS15_PIN_AUTH_TYPE_PIN;
++		pin_info.auth_id.value[0] = 0x01;
++		pin_info.auth_id.len = 1;
++		pin_info.attrs.pin.reference = 2;
++		pin_info.attrs.pin.flags = SC_PKCS15_PIN_FLAG_LOCAL |
++					   SC_PKCS15_PIN_FLAG_INITIALIZED |
++					   SC_PKCS15_PIN_FLAG_NEEDS_PADDING;
++		pin_info.attrs.pin.type = SC_PKCS15_PIN_TYPE_ASCII_NUMERIC;
++		pin_info.attrs.pin.min_length = 4;
++		pin_info.attrs.pin.max_length = 16;
++		pin_info.attrs.pin.stored_length = 16;
++		pin_info.attrs.pin.pad_char = 0x00;
++		pin_info.max_tries = 6;
++		pin_info.tries_left = -1;
++		sc_format_path(EPASS2003_DF, &pin_info.path);
++
++		strlcpy(pin_obj.label, "User PIN", sizeof(pin_obj.label));
++		pin_obj.flags = SC_PKCS15_CO_FLAG_MODIFIABLE |
++				SC_PKCS15_CO_FLAG_PRIVATE;
++
++		r = sc_pkcs15emu_add_pin_obj(p15card, &pin_obj, &pin_info);
++		if (r < 0) {
++			sc_log(ctx, "Failed to add PIN: %s", sc_strerror(r));
++			LOG_FUNC_RETURN(ctx, r);
++		}
++	}
++
++	/* Read certificate file */
++	buflen = 0;
++	r = epass2003_read_file(card, EPASS2003_CERT_FILE,
++				buf, sizeof(buf), &buflen);
++	if (r < 0) {
++		sc_log(ctx, "Failed to read cert file: %s", sc_strerror(r));
++		LOG_FUNC_RETURN(ctx, r);
++	}
++
++	/* Find DER certificate within the file data */
++	if (find_cert_in_buffer(buf, buflen, &cert_offset, &cert_len) < 0) {
++		sc_log(ctx, "No DER certificate found in file");
++		LOG_FUNC_RETURN(ctx, SC_ERROR_OBJECT_NOT_FOUND);
++	}
++
++	sc_log(ctx, "Found certificate at offset %zu, length %zu",
++	       cert_offset, cert_len);
++
++	/* Add X.509 certificate */
++	{
++		struct sc_pkcs15_cert_info cert_info;
++		struct sc_pkcs15_object cert_obj;
++
++		memset(&cert_info, 0, sizeof(cert_info));
++		memset(&cert_obj, 0, sizeof(cert_obj));
++
++		cert_info.id.value[0] = 0x45;
++		cert_info.id.len = 1;
++		cert_info.authority = 0;
++
++		/* Store cert data directly (embedded) */
++		cert_info.value.value = malloc(cert_len);
++		if (!cert_info.value.value)
++			LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
++		memcpy(cert_info.value.value, buf + cert_offset, cert_len);
++		cert_info.value.len = cert_len;
++
++		strlcpy(cert_obj.label, "Certificate", sizeof(cert_obj.label));
++
++		r = sc_pkcs15emu_add_x509_cert(p15card, &cert_obj, &cert_info);
++		if (r < 0) {
++			free(cert_info.value.value);
++			sc_log(ctx, "Failed to add cert: %s", sc_strerror(r));
++			LOG_FUNC_RETURN(ctx, r);
++		}
++	}
++
++	/* Add RSA private key */
++	{
++		struct sc_pkcs15_prkey_info prkey_info;
++		struct sc_pkcs15_object prkey_obj;
++
++		memset(&prkey_info, 0, sizeof(prkey_info));
++		memset(&prkey_obj, 0, sizeof(prkey_obj));
++
++		prkey_info.id.value[0] = 0x45;
++		prkey_info.id.len = 1;
++		prkey_info.usage = SC_PKCS15_PRKEY_USAGE_SIGN |
++				   SC_PKCS15_PRKEY_USAGE_DECRYPT |
++				   SC_PKCS15_PRKEY_USAGE_NONREPUDIATION;
++		prkey_info.native = 1;
++		prkey_info.key_reference = 0;
++		prkey_info.modulus_length = 2048;
++		sc_format_path(EPASS2003_DF, &prkey_info.path);
++
++		strlcpy(prkey_obj.label, "Private Key", sizeof(prkey_obj.label));
++		prkey_obj.auth_id.value[0] = 0x01;
++		prkey_obj.auth_id.len = 1;
++		prkey_obj.flags = SC_PKCS15_CO_FLAG_PRIVATE;
++
++		r = sc_pkcs15emu_add_rsa_prkey(p15card, &prkey_obj, &prkey_info);
++		if (r < 0) {
++			sc_log(ctx, "Failed to add private key: %s",
++			       sc_strerror(r));
++			LOG_FUNC_RETURN(ctx, r);
++		}
++	}
++
++	LOG_FUNC_RETURN(ctx, SC_SUCCESS);
++}
++
++int
++sc_pkcs15emu_epass2003_init_ex(sc_pkcs15_card_t *p15card, struct sc_aid *aid)
++{
++	SC_FUNC_CALLED(p15card->card->ctx, SC_LOG_DEBUG_VERBOSE);
++
++	if (p15card->card->type != SC_CARD_TYPE_ENTERSAFE_FTCOS_EPASS2003)
++		return SC_ERROR_WRONG_CARD;
++
++	return sc_pkcs15emu_epass2003_init(p15card);
++}

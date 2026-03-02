@@ -1,0 +1,134 @@
+diff --git a/src/libopensc/ctx.c b/src/libopensc/ctx.c
+index 6fbab389c..323c60a05 100644
+--- a/src/libopensc/ctx.c
++++ b/src/libopensc/ctx.c
+@@ -35,6 +35,11 @@
+ #include <winreg.h>
+ #include <direct.h>
+ #include <io.h>
++#else
++#ifdef HAVE_DLFCN_H
++#include <dlfcn.h>
++#endif
++#include <libgen.h>
+ #endif
+ 
+ #ifdef __APPLE__
+@@ -835,6 +840,53 @@ int sc_context_repair(sc_context_t **ctx_out)
+ }
+ 
+ #ifdef USE_OPENSSL3_LIBCTX
++static void sc_openssl3_set_provider_search_path(sc_context_t *ctx)
++{
++#if defined(HAVE_DLFCN_H)
++	Dl_info info;
++	char *libcrypto_path = NULL;
++	char *libcrypto_dir = NULL;
++	char *modules_dir = NULL;
++	size_t modules_dir_len = 0;
++	int rv = 0;
++
++	if (ctx == NULL || ctx->ossl3ctx == NULL || ctx->ossl3ctx->libctx == NULL)
++		return;
++
++	if (!dladdr((void *) OpenSSL_version_num, &info) || info.dli_fname == NULL)
++		return;
++
++	libcrypto_path = strdup(info.dli_fname);
++	if (libcrypto_path == NULL)
++		return;
++
++	libcrypto_dir = dirname(libcrypto_path);
++	if (libcrypto_dir == NULL || *libcrypto_dir == '\0') {
++		free(libcrypto_path);
++		return;
++	}
++
++	modules_dir_len = strlen(libcrypto_dir) + strlen("/ossl-modules") + 1;
++	modules_dir = calloc(1, modules_dir_len);
++	if (modules_dir == NULL) {
++		free(libcrypto_path);
++		return;
++	}
++	snprintf(modules_dir, modules_dir_len, "%s/ossl-modules", libcrypto_dir);
++
++	rv = OSSL_PROVIDER_set_default_search_path(ctx->ossl3ctx->libctx, modules_dir);
++	if (rv == 1)
++		sc_log(ctx, "OpenSSL provider search path set to %s", modules_dir);
++	else
++		sc_log(ctx, "Failed to set OpenSSL provider search path to %s", modules_dir);
++
++	free(modules_dir);
++	free(libcrypto_path);
++#else
++	(void) ctx;
++#endif
++}
++
+ static int sc_openssl3_init(sc_context_t *ctx)
+ {
+ 	ctx->ossl3ctx = calloc(1, sizeof(ossl3ctx_t));
+@@ -844,6 +896,7 @@ static int sc_openssl3_init(sc_context_t *ctx)
+ 	if (ctx->ossl3ctx->libctx == NULL) {
+ 		return SC_ERROR_INTERNAL;
+ 	}
++	sc_openssl3_set_provider_search_path(ctx);
+ 	ctx->ossl3ctx->defprov = OSSL_PROVIDER_load(ctx->ossl3ctx->libctx,
+ 						    "default");
+ 	if (ctx->ossl3ctx->defprov == NULL) {
+@@ -856,6 +909,7 @@ static int sc_openssl3_init(sc_context_t *ctx)
+ 						       "legacy");
+ 	if (ctx->ossl3ctx->legacyprov == NULL) {
+ 		sc_log(ctx, "Failed to load OpenSSL Legacy provider");
++		sc_log(ctx, "Legacy algorithms may fall back to process-global OpenSSL context");
+ 	}
+ 	return SC_SUCCESS;
+ }
+diff --git a/src/libopensc/sc-ossl-compat.h b/src/libopensc/sc-ossl-compat.h
+index 96ec4bd73..5917f22a3 100644
+--- a/src/libopensc/sc-ossl-compat.h
++++ b/src/libopensc/sc-ossl-compat.h
+@@ -84,7 +84,20 @@ typedef struct ossl3ctx {
+ 
+ static inline EVP_MD *_sc_evp_md(ossl3ctx_t *ctx, const char *algorithm)
+ {
+-	return EVP_MD_fetch(ctx->libctx, algorithm, NULL);
++	EVP_MD *md = NULL;
++
++	if (ctx != NULL && ctx->libctx != NULL)
++		md = EVP_MD_fetch(ctx->libctx, algorithm, NULL);
++
++	/*
++	 * Keep using the OpenSC private libctx whenever possible.
++	 * Fall back to the process-global context only when the private
++	 * legacy provider could not be loaded.
++	 */
++	if (md == NULL && (ctx == NULL || ctx->legacyprov == NULL))
++		md = EVP_MD_fetch(NULL, algorithm, NULL);
++
++	return md;
+ }
+ #define sc_evp_md(ctx, alg) _sc_evp_md((ctx)->ossl3ctx, alg)
+ 
+@@ -103,7 +116,20 @@ static inline EVP_PKEY_CTX *_sc_evp_pkey_ctx_new(ossl3ctx_t *ctx,
+ 
+ static inline EVP_CIPHER *_sc_evp_cipher(ossl3ctx_t *ctx, const char *algorithm)
+ {
+-	return EVP_CIPHER_fetch(ctx->libctx, algorithm, NULL);
++	EVP_CIPHER *cipher = NULL;
++
++	if (ctx != NULL && ctx->libctx != NULL)
++		cipher = EVP_CIPHER_fetch(ctx->libctx, algorithm, NULL);
++
++	/*
++	 * Keep using the OpenSC private libctx whenever possible.
++	 * Fall back to the process-global context only when the private
++	 * legacy provider could not be loaded.
++	 */
++	if (cipher == NULL && (ctx == NULL || ctx->legacyprov == NULL))
++		cipher = EVP_CIPHER_fetch(NULL, algorithm, NULL);
++
++	return cipher;
+ }
+ #define sc_evp_cipher(ctx, alg) _sc_evp_cipher((ctx)->ossl3ctx, alg)
+ 

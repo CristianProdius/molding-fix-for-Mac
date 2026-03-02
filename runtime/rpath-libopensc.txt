@@ -1,0 +1,4 @@
+         name @rpath/libopensc.12.dylib (offset 24)
+         name @rpath/libcrypto.3.dylib (offset 24)
+          cmd LC_RPATH
+         path @loader_path (offset 12)

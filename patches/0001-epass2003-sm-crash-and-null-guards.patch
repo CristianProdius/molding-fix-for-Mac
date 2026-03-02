@@ -1,0 +1,46 @@
+diff --git a/src/libopensc/apdu.c b/src/libopensc/apdu.c
+index 099d152aa..06468f0e4 100644
+--- a/src/libopensc/apdu.c
++++ b/src/libopensc/apdu.c
+@@ -255,6 +255,9 @@ int sc_apdu_set_resp(sc_context_t *ctx, sc_apdu_t *apdu, const u8 *buf,
+ int
+ sc_check_apdu(sc_card_t *card, const sc_apdu_t *apdu)
+ {
++	if (apdu == NULL)
++		return SC_ERROR_INVALID_ARGUMENTS;
++
+ 	if ((apdu->cse & ~SC_APDU_SHORT_MASK) == 0) {
+ 		/* length check for short APDU */
+ 		if (apdu->le > 256 || (apdu->lc > 255 && (apdu->flags & SC_APDU_FLAGS_CHAINING) == 0))   {
+diff --git a/src/libopensc/card-epass2003.c b/src/libopensc/card-epass2003.c
+index 14d389a43..c3d6bb375 100644
+--- a/src/libopensc/card-epass2003.c
++++ b/src/libopensc/card-epass2003.c
+@@ -1601,9 +1601,8 @@ epass2003_sm_get_wrapped_apdu(struct sc_card *card,
+ 
+ 	rv = epass2003_sm_wrap_apdu(card, plain, apdu);
+ 	if (rv) {
+-		rv = epass2003_sm_free_wrapped_apdu(card, NULL, &apdu);
+-		if (rv < 0)
+-			goto err;
++		epass2003_sm_free_wrapped_apdu(card, NULL, &apdu);
++		goto err;
+ 	}
+ 
+ 	*sm_apdu = apdu;
+diff --git a/src/libopensc/sm.c b/src/libopensc/sm.c
+index 062efc505..81a4cd77a 100644
+--- a/src/libopensc/sm.c
++++ b/src/libopensc/sm.c
+@@ -148,6 +148,11 @@ sc_sm_single_transmit(struct sc_card *card, struct sc_apdu *apdu)
+ 	}
+ 	LOG_TEST_RET(ctx, rv, "get SM APDU error");
+ 
++	if (sm_apdu == NULL) {
++		sc_sm_stop(card);
++		LOG_TEST_RET(ctx, SC_ERROR_INTERNAL, "get SM APDU returned NULL");
++	}
++
+ 	/* check if SM APDU is still valid */
+ 	rv = sc_check_apdu(card, sm_apdu);
+ 	if (rv < 0)   {
