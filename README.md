@@ -25,7 +25,9 @@ Patch: `patches/0001-epass2003-sm-crash-and-null-guards.patch`
   - Detect ENTERSAFE index markers.
   - Build token info.
   - Add PIN object.
-  - Extract cert from proprietary file and add cert/private key/public key mapping.
+  - Extract cert from proprietary file.
+  - Add explicit RSA public key object (`Public Key`) derived from cert to avoid cert-generated alias collisions in PKCS#11 providers.
+  - Keep private key label aligned with certificate label (`Certificate`) for MoldSign alias resolution path.
 - Registration/build wiring:
   - `src/libopensc/pkcs15-syn.c`
   - `src/libopensc/pkcs15-syn.h`
@@ -85,3 +87,4 @@ Before runtime replacement, backup was created at:
 
 - The OpenSC source patches are intended for reproducible investigation and potential upstreaming.
 - The runtime x86_64 packaging adjustments are deployment-specific but included here because they were necessary for MoldSign to load the module correctly on macOS.
+- Do not patch MoldSign signed JAR classes in-place (`ClientCardServer-2.0.jar`): JVM package signer checks will raise `SecurityException` ("signer information does not match") and break PIN dialog loading.
