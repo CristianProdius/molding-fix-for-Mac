@@ -52,7 +52,13 @@ Patch: `patches/0003-openssl3-provider-searchpath-and-libctx-fallback.patch`
 The deployed MoldSign runtime now uses:
 - `x86_64` OpenSC/OpenSSL libraries (matching MoldSign app architecture).
 - Local linkage (`@loader_path` / `@rpath`) so `opensc-pkcs11.so`, `libopensc.12.dylib`, `libcrypto.3.dylib`, and `ossl-modules/legacy.dylib` resolve consistently in bundle layout.
-- `PKCS11.properties` driver order with OpenSC first and default driver path set to MoldSign `native_lib`.
+- `PKCS11.properties` default driver path set to MoldSign `native_lib`.
+
+Current production-stable configuration (validated on 2026-03-09) is single-provider:
+- `driver_lib=libcastle.1.0.0.dylib`
+
+Reason:
+- Multi-provider mode (`opensc + castle + others`) can expose duplicate certificate entries for the same token in MoldSign and trigger PIN retry loops on the OpenSC path (`PrivateKey not found`), while `libcastle` signs successfully.
 
 Runtime snapshots are in `runtime/`.
 
@@ -66,11 +72,13 @@ Runtime snapshots are in `runtime/`.
   - OpenSC driver init success.
   - Card inserted + session initialized.
   - Certificate model returned (`CertificateModel.size=1`).
-- `evidence/absence-of-old-errors.txt`
-  - Empty file means no matches for old error signatures:
-    - incompatible architecture
-    - failed module initialization
-    - DES-CBC unsupported / provider init failures
+- `evidence/libcastle-only-stabilization-20260309.txt`
+  - Post-fix verification for libcastle-only mode:
+    - `providers.size() = 1`
+    - `cert to show: 1`
+    - no `opensc-pkcs11.so-0`
+    - no `PrivateKey not found`
+    - no `LoginManager isLoggedIn=false`
 
 ## MoldSign Paths Used
 
