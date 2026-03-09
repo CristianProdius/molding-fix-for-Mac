@@ -9,16 +9,42 @@ curl -fsSL https://raw.githubusercontent.com/CristianProdius/molding-fix-for-Mac
 ```
 
 What it does:
-- Backs up `PKCS11.properties`.
-- Sets MoldSign to single-provider mode (`driver_lib=libcastle.1.0.0.dylib`).
-- Restarts MoldSign Server/Desktop (Server first).
-- Prints quick log checks.
+1. **Downloads & deploys patched x86_64 binaries** from the GitHub Release into MoldSign's `native_lib/` (with automatic backup).
+2. **Configures `PKCS11.properties`** for single-provider mode (`driver_lib=libcastle.1.0.0.dylib`).
+3. **Restarts MoldSign** Server/Desktop (Server first).
+4. **Prints verification** — binary architectures, config, and log checks.
 
-Use `--no-restart` if needed:
+### Deployed Binaries
+
+| File | Size | Description |
+|------|------|-------------|
+| `opensc-pkcs11.so` | 228 KB | PKCS#11 module (patched: SM crash fix + ePass2003 PKCS#15 emulator) |
+| `libopensc.12.dylib` | 1.8 MB | OpenSC core library |
+| `libcrypto.3.dylib` | 4.7 MB | OpenSSL 3 (x86_64 build) |
+| `ossl-modules/legacy.dylib` | 111 KB | OpenSSL legacy provider (DES for SCP01 SM) |
+
+### Flags
+
+| Flag | Effect |
+|------|--------|
+| `--no-restart` | Apply fixes but don't restart MoldSign apps |
+| `--config-only` | Only apply PKCS11.properties config fix, skip binary deployment |
+
+Examples:
 
 ```bash
+# Full fix without restarting
 curl -fsSL https://raw.githubusercontent.com/CristianProdius/molding-fix-for-Mac/main/scripts/fix-moldsign-libcastle.sh | bash -s -- --no-restart
+
+# Config-only fix (if binaries are already deployed)
+curl -fsSL https://raw.githubusercontent.com/CristianProdius/molding-fix-for-Mac/main/scripts/fix-moldsign-libcastle.sh | bash -s -- --config-only
 ```
+
+## Releases
+
+| Version | Date | Description |
+|---------|------|-------------|
+| [v1.0.0](https://github.com/CristianProdius/molding-fix-for-Mac/releases/tag/v1.0.0) | 2026-03-09 | Full MoldSign ePass2003 fix — patched OpenSC/OpenSSL x86_64 binaries + config |
 
 ## Problem Summary
 MoldSign could not use STISC ePass2003 reliably due to multiple stacked issues:
