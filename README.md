@@ -84,21 +84,9 @@ Runtime snapshots are in `runtime/`.
 
 ## Evidence
 
-- `evidence/pkcs11-tool-L.txt`
-  - Slot/token detected (`ePass2003`, manufacturer `EnterSafe`).
-- `evidence/pkcs11-tool-O.txt`
-  - Certificate and public key objects enumerated.
-- `evidence/moldsign-server-log-snippets.txt`
-  - OpenSC driver init success.
-  - Card inserted + session initialized.
-  - Certificate model returned (`CertificateModel.size=1`).
-- `evidence/libcastle-only-stabilization-20260309.txt`
-  - Post-fix verification for libcastle-only mode:
-    - `providers.size() = 1`
-    - `cert to show: 1`
-    - no `opensc-pkcs11.so-0`
-    - no `PrivateKey not found`
-    - no `LoginManager isLoggedIn=false`
+Privacy note:
+- Raw runtime evidence files were removed from this public repository to avoid exposing token/certificate metadata.
+- Keep diagnostics local when troubleshooting (`/Applications/STISC/MoldSign/log/err_MoldSign_Server.log`).
 
 ## MoldSign Paths Used
 
