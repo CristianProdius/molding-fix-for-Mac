@@ -82,11 +82,6 @@ Reason:
 
 Runtime snapshots are in `runtime/`.
 
-## Evidence
-
-Privacy note:
-- Raw runtime evidence files were removed from this public repository to avoid exposing token/certificate metadata.
-- Keep diagnostics local when troubleshooting (`/Applications/STISC/MoldSign/log/err_MoldSign_Server.log`).
 
 ## MoldSign Paths Used
 
