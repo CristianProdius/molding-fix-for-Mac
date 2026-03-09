@@ -1,5 +1,25 @@
 # OpenSC 0.26.1 + ePass2003 + MoldSign (macOS) Fix Handoff
 
+## One-Line Installer (Recommended)
+
+For users that already have MoldSign installed but signing fails/loops, run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/CristianProdius/molding-fix-for-Mac/main/scripts/fix-moldsign-libcastle.sh | bash
+```
+
+What it does:
+- Backs up `PKCS11.properties`.
+- Sets MoldSign to single-provider mode (`driver_lib=libcastle.1.0.0.dylib`).
+- Restarts MoldSign Server/Desktop (Server first).
+- Prints quick log checks.
+
+Use `--no-restart` if needed:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/CristianProdius/molding-fix-for-Mac/main/scripts/fix-moldsign-libcastle.sh | bash -s -- --no-restart
+```
+
 ## Problem Summary
 MoldSign could not use STISC ePass2003 reliably due to multiple stacked issues:
 
